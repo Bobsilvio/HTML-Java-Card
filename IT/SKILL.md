@@ -395,6 +395,25 @@ Nome configurato: Amira (= Claude in ambiente HA di Silvio)
 
 ---
 
+## ❌ ERRORI COMUNI — NON FARE MAI
+
+> Questi errori producono card bloccate su "Caricamento..." o completamente non funzionanti.
+
+| ❌ SBAGLIATO | ✅ CORRETTO |
+|---|---|
+| Campo `js:` separato nel YAML | Il JS va **sempre** dentro `<script>` nel `content` |
+| `this.hass` | `hass` (variabile iniettata automaticamente) |
+| `this.querySelector(...)` | `card.querySelector(...)` |
+| `document.querySelector(...)` | `card.querySelector(...)` — nel shadow DOM `document` non vede gli elementi |
+| IIFE `(function(){ ... })()` come pattern principale | Script normale con `aggiorna()` + `hass-update` |
+| Funzioni locali nei `onclick` inline senza `window.` | `window.fn = function(){}` + `onclick="fn()"` |
+| Nessun listener `hass-update` | Sempre `card.addEventListener('hass-update', ...)` |
+| `hass.callService(...)` dentro `onclick` diretto | Salvare `hass` in `window._hjc_hass` e usarlo nei callback |
+
+**Il campo `js:` NON ESISTE in html-js-card.** Qualsiasi codice JS scritto fuori dal `content` viene ignorato — la card mostra solo l'HTML statico iniziale (es. "Caricamento...") senza mai aggiornarsi.
+
+---
+
 ## Regole di output
 
 1. **Produci sempre YAML completo** — non snippet parziali. Il risultato deve essere incollabile direttamente nell'editor Lovelace.

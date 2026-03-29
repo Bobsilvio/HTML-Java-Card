@@ -1,6 +1,15 @@
 # HTML + JS Card
 
-Una custom card per Home Assistant che permette di usare **HTML, CSS e JavaScript arbitrario** direttamente dal YAML Lovelace — incluso Chart.js, fetch API, e tutto ciò che vuoi.
+Una custom card per Home Assistant che permette di usare **HTML, CSS e JavaScript arbitrario** direttamente dal YAML Lovelace — incluso Chart.js, SVG animati, fetch API, e tutto ciò che vuoi.
+
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Bobsilvio&repository=HTML-Java-Card&category=plugin)
+
+---
+
+## Installazione tramite HACS (consigliato)
+
+1. Clicca il badge qui sopra oppure in HACS cerca **HTML JS Card**
+2. Clicca **Scarica** e ricarica la pagina
 
 ## Installazione manuale
 
@@ -11,13 +20,15 @@ Una custom card per Home Assistant che permette di usare **HTML, CSS e JavaScrip
    - Tipo: `JavaScript Module`
 4. Ricarica la pagina
 
+---
+
 ## Configurazione YAML
 
 ```yaml
 type: custom:html-js-card
 title: La mia card          # opzionale
 height: 400px               # opzionale, default auto
-padding: 12px 16px 16px    # opzionale, padding del contenuto
+padding: 12px 16px 16px     # opzionale, padding del contenuto
 overflow: hidden            # opzionale: hidden | auto | scroll
 update_interval: 30         # opzionale, secondi tra aggiornamenti automatici
 entities:                   # opzionale, entità da iniettare
@@ -30,27 +41,22 @@ content: |
     <p id="temp">—</p>
   </div>
   <script>
-    // Variabili disponibili:
-    // hass     → oggetto Home Assistant completo
-    // entities → entità dichiarate in config (già filtrate)
-    // card     → elemento DOM contenitore (#hjc-content)
-    // config   → configurazione YAML della card
-    // shadow   → shadowRoot della card
-
     function aggiorna(hassObj, entitiesObj) {
       const t = entitiesObj['sensor.temperatura']?.state || '—';
       card.querySelector('#temp').textContent = t + ' °C';
     }
 
-    // Prima esecuzione
+    window._hjc_hass = hass;
     aggiorna(hass, entities);
 
-    // Aggiornamento quando HA cambia stato
     card.addEventListener('hass-update', e => {
+      window._hjc_hass = e.detail.hass;
       aggiorna(e.detail.hass, e.detail.entities);
     });
   </script>
 ```
+
+---
 
 ## Variabili disponibili negli script
 
@@ -62,9 +68,11 @@ content: |
 | `config` | Object | Configurazione YAML della card |
 | `shadow` | ShadowRoot | Shadow DOM della card |
 
-## Gestione aggiornamenti
+---
 
-La card emette un evento `hass-update` sul contenitore ogni volta che HA aggiorna lo stato delle entità, e opzionalmente ogni `update_interval` secondi.
+## Aggiornamenti in tempo reale
+
+La card emette `hass-update` ogni volta che HA aggiorna lo stato delle entità, e opzionalmente ogni `update_interval` secondi.
 
 ```javascript
 card.addEventListener('hass-update', e => {
@@ -72,6 +80,28 @@ card.addEventListener('hass-update', e => {
   // aggiorna UI
 });
 ```
+
+---
+
+## Chiamare servizi HA
+
+```javascript
+// Premere un button
+hass.callService('button', 'press', { entity_id: 'button.reset_acqua' });
+
+// Impostare un input_number
+hass.callService('input_number', 'set_value', {
+  entity_id: 'input_number.soglia',
+  value: 2000
+});
+
+// Accendere una luce
+hass.callService('light', 'turn_on', { entity_id: 'light.salotto', brightness_pct: 80 });
+```
+
+> **Nota:** salva sempre `hass` in `window._hjc_hass = hass` per averlo disponibile dentro i callback `onclick` e gli event listener.
+
+---
 
 ## Esempio completo — Card con Chart.js
 
@@ -93,9 +123,10 @@ content: |
         labels: ['1h fa','45m','30m','15m','ora'],
         datasets: [{
           data: [21.2, 21.5, 22.0, 21.8, parseFloat(entities['sensor.temperatura_salotto']?.state || 0)],
-          borderColor: '#1D9E75',
+          borderColor: 'var(--primary-color)',
           tension: 0.4,
-          pointRadius: 3
+          pointRadius: 3,
+          fill: false
         }]
       },
       options: { plugins: { legend: { display: false } } }
@@ -109,21 +140,11 @@ content: |
   </script>
 ```
 
-## Chiamare servizi HA
+---
 
-```javascript
-// Esempio: premere un button
-hass.callService('button', 'press', { entity_id: 'button.reset_acqua' });
+## Note tecniche
 
-// Esempio: impostare un input_number
-hass.callService('input_number', 'set_value', {
-  entity_id: 'input_number.soglia',
-  value: 2000
-});
-```
-
-## Note
-
-- Gli script CDN vengono caricati nel documento principale (non nel shadow DOM) per renderli globali — quindi Chart.js e simili sono disponibili come globali dopo il caricamento.
-- Lo shadow DOM isola il CSS, quindi gli stili che scrivi nella card non impattano sul resto della dashboard.
-- Per accedere alle variabili CSS di HA usa `var(--primary-color)` ecc. — funzionano anche dentro lo shadow DOM.
+- Gli script CDN (`scripts:`) vengono caricati nel documento principale — Chart.js e simili sono disponibili come variabili globali.
+- Lo shadow DOM isola il CSS: gli stili scritti nella card non impattano sul resto della dashboard.
+- Usa sempre `card.querySelector('#id')` invece di `document.getElementById()` — il shadow DOM non è visibile da `document`.
+- Le variabili CSS di HA (`var(--primary-color)`, `var(--card-background-color)`, ecc.) funzionano correttamente anche dentro lo shadow DOM.
