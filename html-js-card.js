@@ -193,6 +193,11 @@ class HtmlJsCard extends HTMLElement {
         this._executeScript(scriptCode, entities, contentDiv);
       });
 
+      // Supporto campo opzionale `js:` — eseguito dopo il content
+      if (config.js) {
+        this._executeScript(config.js, entities, contentDiv);
+      }
+
       this._initialized = true;
 
       // Imposta aggiornamento automatico se configurato
